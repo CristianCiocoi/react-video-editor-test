@@ -3,20 +3,12 @@ import { Selection, Moveable } from "@interactify/toolkit";
 import { getIdFromClassName } from "../utils/scene";
 import { dispatch } from "@designcombo/events";
 import { EDIT_OBJECT } from "@designcombo/state";
-import {
-  SelectionInfo,
-  emptySelection,
-  getSelectionByIds,
-  getTargetById
-} from "../utils/target";
+import { SelectionInfo, emptySelection, getSelectionByIds, getTargetById } from "../utils/target";
 import useStore from "../store/use-store";
+import { useSelectionStore } from "../store/use-selection-store";
 import StateManager from "@designcombo/state";
 import { getCurrentTime } from "../utils/time";
-import {
-  calculateMinWidth,
-  calculateTextHeight,
-  htmlToPlainText
-} from "../utils/text";
+import { calculateMinWidth, calculateTextHeight, htmlToPlainText } from "../utils/text";
 
 let holdGroupPosition: Record<string, any> | null = null;
 let dragStartEnd = false;
@@ -34,15 +26,10 @@ const snapDirections = {
   bottom: true,
   right: true,
   center: true,
-  middle: true
+  middle: true,
 };
 
-function scaleDiv(
-  selector: string,
-  scale: number,
-  currentWidth: number,
-  currentHeight: number
-) {
+function scaleDiv(selector: string, scale: number, currentWidth: number, currentHeight: number) {
   const div = document.querySelector(selector) as HTMLDivElement | null;
   if (div) {
     const fontSize = parseFloat(getComputedStyle(div).fontSize);
@@ -52,51 +39,37 @@ function scaleDiv(
   }
 }
 
-export function SceneInteractions({
-  stateManager,
-  containerRef,
-  zoom
-}: SceneInteractionsProps) {
+export function SceneInteractions({ stateManager, containerRef, zoom }: SceneInteractionsProps) {
   const [targets, setTargets] = useState<HTMLDivElement[]>([]);
   const [selection, setSelection] = useState<Selection>();
-  const {
-    activeIds,
-    setState,
-    trackItemsMap,
-    playerRef,
-    setSceneMoveableRef,
-    trackItemIds
-  } = useStore();
+  const { activeIds, setState, trackItemsMap, playerRef, setSceneMoveableRef, trackItemIds } = useStore();
   const moveableRef = useRef<Moveable>(null);
-  const [selectionInfo, setSelectionInfo] =
-    useState<SelectionInfo>(emptySelection);
+  const [selectionInfo, setSelectionInfo] = useState<SelectionInfo>(emptySelection);
 
   const elementGuidelines = useMemo(
     () =>
       ["artboard", ...trackItemIds.filter((id) => !activeIds.includes(id))].map(
-        (id) =>
-          `#${
-            typeof window !== "undefined" && window.CSS
-              ? window.CSS.escape(id)
-              : id
-          }`
+        (id) => `#${typeof window !== "undefined" && window.CSS ? window.CSS.escape(id) : id}`
       ),
     [trackItemIds, activeIds]
   );
 
   useEffect(() => {
     const updateTargets = (time?: number) => {
+      // In selection mode, don't show moveable controls
+      const { selectionMode } = useSelectionStore.getState();
+      if (selectionMode) {
+        setTargets([]);
+        setSelectionInfo(emptySelection);
+        return;
+      }
+
       const currentTime = time || getCurrentTime();
       const { trackItemsMap } = useStore.getState();
       const targetIds = activeIds.filter((id) => {
-        return (
-          trackItemsMap[id]?.display.from <= currentTime &&
-          trackItemsMap[id]?.display.to >= currentTime
-        );
+        return trackItemsMap[id]?.display.from <= currentTime && trackItemsMap[id]?.display.to >= currentTime;
       });
-      const targets = targetIds.map(
-        (id) => getTargetById(id) as HTMLDivElement
-      );
+      const targets = targetIds.map((id) => getTargetById(id) as HTMLDivElement);
       selection?.setSelectedTargets(targets);
       const selInfo = getSelectionByIds(targetIds);
       setSelectionInfo(selInfo);
@@ -122,6 +95,12 @@ export function SceneInteractions({
   }, [activeIds, playerRef, trackItemsMap]);
 
   useEffect(() => {
+    // Disable selection in selection mode
+    const { selectionMode } = useSelectionStore.getState();
+    if (selectionMode) {
+      return;
+    }
+
     const selection = new Selection({
       container: containerRef.current,
       boundContainer: true,
@@ -129,27 +108,23 @@ export function SceneInteractions({
       selectableTargets: [".designcombo-scene-item"],
       selectFromInside: false,
       selectByClick: true,
-      toggleContinueSelect: "shift"
+      toggleContinueSelect: "shift",
     })
       .on("select", (e) => {
         // Filter out audio items from selection
-        const filteredSelected = e.selected.filter(
-          (el) => !el.className.includes("designcombo-scene-item-type-audio")
-        );
+        const filteredSelected = e.selected.filter((el) => !el.className.includes("designcombo-scene-item-type-audio"));
 
-        const ids = filteredSelected.map((el) =>
-          getIdFromClassName(el.className)
-        );
+        const ids = filteredSelected.map((el) => getIdFromClassName(el.className));
 
         setTargets(filteredSelected as HTMLDivElement[]);
 
         stateManager.updateState(
           {
-            activeIds: ids
+            activeIds: ids,
           },
           {
             updateHistory: false,
-            kind: "layer:selection"
+            kind: "layer:selection",
           }
         );
       })
@@ -160,10 +135,7 @@ export function SceneInteractions({
         if (targets.includes(target)) {
           e.stop();
         }
-        if (
-          target &&
-          moveableRef?.current?.moveable.isMoveableElement(target)
-        ) {
+        if (target && moveableRef?.current?.moveable.isMoveableElement(target)) {
           e.stop();
         }
       })
@@ -185,17 +157,15 @@ export function SceneInteractions({
             (el) => !el.className.includes("designcombo-scene-item-type-audio")
           ) as HTMLDivElement[];
 
-          const ids = filteredSelected.map((el) =>
-            getIdFromClassName(el.className)
-          );
+          const ids = filteredSelected.map((el) => getIdFromClassName(el.className));
 
           stateManager.updateState(
             {
-              activeIds: ids
+              activeIds: ids,
             },
             {
               updateHistory: false,
-              kind: "layer:selection"
+              kind: "layer:selection",
             }
           );
 
@@ -209,11 +179,9 @@ export function SceneInteractions({
   }, []);
 
   useEffect(() => {
-    const activeSelectionSubscription = stateManager.subscribeToActiveIds(
-      (newState) => {
-        setState(newState);
-      }
-    );
+    const activeSelectionSubscription = stateManager.subscribeToActiveIds((newState) => {
+      setState(newState);
+    });
 
     return () => {
       activeSelectionSubscription.unsubscribe();
@@ -258,10 +226,10 @@ export function SceneInteractions({
             [targetId]: {
               details: {
                 left: target.style.left,
-                top: target.style.top
-              }
-            }
-          }
+                top: target.style.top,
+              },
+            },
+          },
         });
       }}
       onScale={({ target, transform, direction }) => {
@@ -275,16 +243,12 @@ export function SceneInteractions({
         if (!match) return;
 
         //get current scale
-        const [scaleX, scaleY] = match[1]
-          .split(",")
-          .map((value) => Number.parseFloat(value.trim()));
+        const [scaleX, scaleY] = match[1].split(",").map((value) => Number.parseFloat(value.trim()));
 
         //get new Scale
         const match2 = transform.match(scaleRegex);
         if (!match2) return;
-        const [newScaleX, newScaleY] = match2[1]
-          .split(",")
-          .map((value) => Number.parseFloat(value.trim()));
+        const [newScaleX, newScaleY] = match2[1].split(",").map((value) => Number.parseFloat(value.trim()));
 
         const currentWidth = target.clientWidth * scaleX;
         const currentHeight = target.clientHeight * scaleY;
@@ -320,10 +284,10 @@ export function SceneInteractions({
               details: {
                 transform: target.style.transform,
                 left: Number.parseFloat(target.style.left),
-                top: Number.parseFloat(target.style.top)
-              }
-            }
-          }
+                top: Number.parseFloat(target.style.top),
+              },
+            },
+          },
         });
       }}
       onRotate={({ target, transform }) => {
@@ -336,10 +300,10 @@ export function SceneInteractions({
           payload: {
             [targetId]: {
               details: {
-                transform: target.style.transform
-              }
-            }
-          }
+                transform: target.style.transform,
+              },
+            },
+          },
         });
       }}
       onDragGroup={({ events }) => {
@@ -348,26 +312,17 @@ export function SceneInteractions({
           const event = events[i];
           const id = getIdFromClassName(event.target.className);
           const trackItem = trackItemsMap[id];
-          const left =
-            Number.parseFloat(trackItem?.details.left as string) +
-            event.beforeTranslate[0];
-          const top =
-            Number.parseFloat(trackItem?.details.top as string) +
-            event.beforeTranslate[1];
+          const left = Number.parseFloat(trackItem?.details.left as string) + event.beforeTranslate[0];
+          const top = Number.parseFloat(trackItem?.details.top as string) + event.beforeTranslate[1];
           event.target.style.left = `${left}px`;
           event.target.style.top = `${top}px`;
           holdGroupPosition[id] = {
             left: left,
-            top: top
+            top: top,
           };
         }
       }}
-      onResize={({
-        target,
-        width: nextWidth,
-        height: nextHeight,
-        direction
-      }) => {
+      onResize={({ target, width: nextWidth, height: nextHeight, direction }) => {
         const id = getIdFromClassName(target.className);
         if (direction[1] === 1 || direction[1] === -1) {
           if (trackItemsMap[id].type === "progressSquare") {
@@ -375,7 +330,7 @@ export function SceneInteractions({
             const updateData: any = {
               width: nextWidth,
               height: nextHeight,
-              left: parseFloat(target.style.left)
+              left: parseFloat(target.style.left),
             };
             if (direction[1] === -1) {
               const newTop = `${parseFloat(target.style.top) - diffWidth}px`;
@@ -391,27 +346,21 @@ export function SceneInteractions({
                   ...trackItemsMap[id],
                   details: {
                     ...trackItemsMap[id].details,
-                    ...updateData
-                  }
-                }
-              }
+                    ...updateData,
+                  },
+                },
+              },
             });
             return;
           }
           // Check if this is pure "s" direction (only vertical, no horizontal change)
-          const isPureSouthDirection =
-            (direction[1] === 1 || direction[1] === -1) && direction[0] === 0;
+          const isPureSouthDirection = (direction[1] === 1 || direction[1] === -1) && direction[0] === 0;
 
           // Handle "s" target type with content-aware height constraints (only for pure south direction)
-          if (
-            isPureSouthDirection &&
-            (trackItemsMap[id].type === "text" ||
-              trackItemsMap[id].type === "caption")
-          ) {
+          if (isPureSouthDirection && (trackItemsMap[id].type === "text" || trackItemsMap[id].type === "caption")) {
             const type = trackItemsMap[id].type;
 
-            const selector =
-              type === "text" ? `[data-text-id="${id}"]` : `#caption-${id}`;
+            const selector = type === "text" ? `[data-text-id="${id}"]` : `#caption-${id}`;
 
             const textEl = document.querySelector(selector) as HTMLDivElement;
 
@@ -427,7 +376,7 @@ export function SceneInteractions({
                 textShadow: textEl.style.textShadow,
                 webkitTextStroke: textEl.style.webkitTextStroke,
                 width: nextWidth + "px",
-                textTransform: textEl.style.textTransform
+                textTransform: textEl.style.textTransform,
               });
 
               // Use the larger of the requested height or minimum content height
@@ -438,15 +387,12 @@ export function SceneInteractions({
               target.style.height = `${finalHeight}px`;
 
               // Safely access nested elements
-              const animationDiv = target.firstElementChild
-                ?.firstElementChild as HTMLDivElement | null;
+              const animationDiv = target.firstElementChild?.firstElementChild as HTMLDivElement | null;
               if (animationDiv) {
                 animationDiv.style.width = `${nextWidth}px`;
                 animationDiv.style.height = `${finalHeight}px`;
 
-                const textDiv = document.querySelector(
-                  `[data-text-id="${id}"]`
-                ) as HTMLDivElement;
+                const textDiv = document.querySelector(`[data-text-id="${id}"]`) as HTMLDivElement;
                 if (textDiv) {
                   textDiv.style.width = `${nextWidth}px`;
                   textDiv.style.height = `${finalHeight}px`;
@@ -462,10 +408,10 @@ export function SceneInteractions({
                     details: {
                       ...trackItemsMap[id].details,
                       width: nextWidth,
-                      height: finalHeight
-                    }
-                  }
-                }
+                      height: finalHeight,
+                    },
+                  },
+                },
               });
               return;
             }
@@ -484,33 +430,23 @@ export function SceneInteractions({
           target.style.height = `${currentHeight * scale}px`;
 
           // Safely access nested elements
-          const animationDiv = target.firstElementChild
-            ?.firstElementChild as HTMLDivElement | null;
+          const animationDiv = target.firstElementChild?.firstElementChild as HTMLDivElement | null;
           if (animationDiv) {
             animationDiv.style.width = `${currentWidth * scale}px`;
             animationDiv.style.height = `${currentHeight * scale}px`;
 
             if (trackItemsMap[id].type === "text") {
-              scaleDiv(
-                `[data-text-id="${id}"]`,
-                scale,
-                currentWidth,
-                currentHeight
-              );
+              scaleDiv(`[data-text-id="${id}"]`, scale, currentWidth, currentHeight);
             } else if (trackItemsMap[id].type === "caption") {
               scaleDiv(`#caption-${id}`, scale, currentWidth, currentHeight);
             }
           }
         } else {
           const id = getIdFromClassName(target.className);
-          if (
-            trackItemsMap[id].type === "text" ||
-            trackItemsMap[id].type === "caption"
-          ) {
+          if (trackItemsMap[id].type === "text" || trackItemsMap[id].type === "caption") {
             const type = trackItemsMap[id].type;
 
-            const selector =
-              type === "text" ? `[data-text-id="${id}"]` : `#caption-${id}`;
+            const selector = type === "text" ? `[data-text-id="${id}"]` : `#caption-${id}`;
 
             const textEl = document.querySelector(selector) as HTMLDivElement;
 
@@ -524,7 +460,7 @@ export function SceneInteractions({
               textShadow: textEl!.style.textShadow,
               webkitTextStroke: textEl!.style.webkitTextStroke,
               width: nextWidth + "px",
-              textTransform: textEl!.style.textTransform
+              textTransform: textEl!.style.textTransform,
             });
 
             const validHeight = calculateTextHeight({
@@ -537,7 +473,7 @@ export function SceneInteractions({
               textShadow: textEl!.style.textShadow,
               webkitTextStroke: textEl!.style.webkitTextStroke,
               width: nextWidth + "px",
-              textTransform: textEl!.style.textTransform
+              textTransform: textEl!.style.textTransform,
             });
 
             const minWidth = calculateMinWidth({
@@ -549,26 +485,22 @@ export function SceneInteractions({
               text: (textEl! as HTMLDivElement).innerText,
               textShadow: textEl!.style.textShadow,
               webkitTextStroke: textEl!.style.webkitTextStroke,
-              textTransform: textEl!.style.textTransform
+              textTransform: textEl!.style.textTransform,
             });
             target.style.width = nextWidth + "px";
             target.style.minWidth = minWidth + "px";
             target.style.height = newHeight + "px";
 
             // Safely access nested elements
-            const animationDiv = target.firstElementChild
-              ?.firstElementChild as HTMLDivElement | null;
+            const animationDiv = target.firstElementChild?.firstElementChild as HTMLDivElement | null;
             if (animationDiv) {
               animationDiv.style.width = `${nextWidth}px`;
               animationDiv.style.height = `${validHeight}px`;
 
               const type = trackItemsMap[id].type;
-              const selector =
-                type === "text" ? `[data-text-id="${id}"]` : `#caption-${id}`;
+              const selector = type === "text" ? `[data-text-id="${id}"]` : `#caption-${id}`;
 
-              const textDiv = document.querySelector(
-                selector
-              ) as HTMLDivElement | null;
+              const textDiv = document.querySelector(selector) as HTMLDivElement | null;
 
               if (textDiv) {
                 textDiv.style.width = `${nextWidth}px`;
@@ -581,10 +513,10 @@ export function SceneInteractions({
                   [id]: {
                     details: {
                       width: nextWidth,
-                      height: newHeight
-                    }
-                  }
-                }
+                      height: newHeight,
+                    },
+                  },
+                },
               });
             }
           }
@@ -595,16 +527,12 @@ export function SceneInteractions({
             const updateData: any = {
               width: nextWidth,
               height: nextHeight,
-              left: parseFloat(target.style.left)
+              left: parseFloat(target.style.left),
             };
             if (direction[0] === -1) {
               const diffWidth = nextWidth - currentWidth;
-              target.style.left = `${
-                parseFloat(target.style.left) - diffWidth
-              }px`;
-              updateData.left = `${
-                parseFloat(target.style.left) - diffWidth
-              }px`;
+              target.style.left = `${parseFloat(target.style.left) - diffWidth}px`;
+              updateData.left = `${parseFloat(target.style.left) - diffWidth}px`;
             }
             setState({
               trackItemsMap: {
@@ -614,10 +542,10 @@ export function SceneInteractions({
                   details: {
                     ...trackItemsMap[id].details,
                     width: nextWidth,
-                    height: nextHeight
-                  }
-                }
-              }
+                    height: nextHeight,
+                  },
+                },
+              },
             });
           }
         }
@@ -627,10 +555,7 @@ export function SceneInteractions({
 
         const type = trackItemsMap[targetId].type;
 
-        const selector =
-          type === "text"
-            ? `[data-text-id="${targetId}"]`
-            : `#caption-${targetId}`;
+        const selector = type === "text" ? `[data-text-id="${targetId}"]` : `#caption-${targetId}`;
 
         const textDiv = document.querySelector(selector) as HTMLDivElement;
 
@@ -642,10 +567,10 @@ export function SceneInteractions({
                   ...trackItemsMap[targetId].details,
                   width: parseFloat(target.style.width),
                   height: parseFloat(target.style.height),
-                  fontSize: parseFloat(textDiv.style.fontSize)
-                }
-              }
-            }
+                  fontSize: parseFloat(textDiv.style.fontSize),
+                },
+              },
+            },
           });
         }
       }}
@@ -658,12 +583,12 @@ export function SceneInteractions({
             payload[id] = {
               details: {
                 top: `${top}px`,
-                left: `${left}px`
-              }
+                left: `${left}px`,
+              },
             };
           }
           dispatch(EDIT_OBJECT, {
-            payload: payload
+            payload: payload,
           });
           holdGroupPosition = null;
         }

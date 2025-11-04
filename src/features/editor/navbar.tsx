@@ -3,18 +3,11 @@ import { Button } from "@/components/ui/button";
 import { dispatch } from "@designcombo/events";
 import { HISTORY_UNDO, HISTORY_REDO, DESIGN_RESIZE } from "@designcombo/state";
 import { Icons } from "@/components/shared/icons";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from "@/components/ui/popover";
-import {
-  ChevronDown,
-  Download,
-  ProportionsIcon,
-  ShareIcon
-} from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown, Download, ProportionsIcon, ShareIcon, Save } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { SaveSelectionDialog } from "@/components/save-selection-dialog";
+import { useSelectionStore } from "./store/use-selection-store";
 
 import type StateManager from "@designcombo/state";
 import { generateId } from "@designcombo/timeline";
@@ -23,11 +16,7 @@ import { useDownloadState } from "./store/use-download-state";
 import DownloadProgressModal from "./download-progress-modal";
 import AutosizeInput from "@/components/ui/autosize-input";
 import { debounce } from "lodash";
-import {
-  useIsLargeScreen,
-  useIsMediumScreen,
-  useIsSmallScreen
-} from "@/hooks/use-media-query";
+import { useIsLargeScreen, useIsMediumScreen, useIsSmallScreen } from "@/hooks/use-media-query";
 
 import { LogoIcons } from "@/components/shared/logos";
 import Link from "next/link";
@@ -36,7 +25,7 @@ export default function Navbar({
   user,
   stateManager,
   setProjectName,
-  projectName
+  projectName,
 }: {
   user: any | null;
   stateManager: StateManager;
@@ -44,6 +33,8 @@ export default function Navbar({
   projectName: string;
 }) {
   const [title, setTitle] = useState(projectName);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const { selectionMode } = useSelectionStore();
   const isLargeScreen = useIsLargeScreen();
   const isMediumScreen = useIsMediumScreen();
   const isSmallScreen = useIsSmallScreen();
@@ -80,7 +71,7 @@ export default function Navbar({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: isLargeScreen ? "320px 1fr 320px" : "1fr 1fr 1fr"
+        gridTemplateColumns: isLargeScreen ? "320px 1fr 320px" : "1fr 1fr 1fr",
       }}
       className="bg-muted pointer-events-none flex h-11 items-center border-b border-border/80 px-2"
     >
@@ -92,20 +83,10 @@ export default function Navbar({
         </div>
 
         <div className=" pointer-events-auto flex h-10 items-center px-1.5">
-          <Button
-            onClick={handleUndo}
-            className="text-muted-foreground"
-            variant="ghost"
-            size="icon"
-          >
+          <Button onClick={handleUndo} className="text-muted-foreground" variant="ghost" size="icon">
             <Icons.undo width={20} />
           </Button>
-          <Button
-            onClick={handleRedo}
-            className="text-muted-foreground"
-            variant="ghost"
-            size="icon"
-          >
+          <Button onClick={handleRedo} className="text-muted-foreground" variant="ghost" size="icon">
             <Icons.redo width={20} />
           </Button>
         </div>
@@ -138,13 +119,25 @@ export default function Navbar({
             variant="outline"
             size={isMediumScreen ? "sm" : "icon"}
           >
-            <ShareIcon width={18} />{" "}
-            <span className="hidden md:block">Share</span>
+            <ShareIcon width={18} /> <span className="hidden md:block">Share</span>
           </Button>
+
+          {selectionMode && (
+            <Button
+              className="flex h-7 gap-1 border border-border"
+              variant="outline"
+              size={isMediumScreen ? "sm" : "icon"}
+              onClick={() => setShowSaveDialog(true)}
+            >
+              <Save width={18} /> <span className="hidden md:block">Save Selections</span>
+            </Button>
+          )}
 
           <DownloadPopover stateManager={stateManager} />
         </div>
       </div>
+
+      <SaveSelectionDialog open={showSaveDialog} onOpenChange={setShowSaveDialog} />
     </div>
   );
 }
@@ -158,7 +151,7 @@ const DownloadPopover = ({ stateManager }: { stateManager: StateManager }) => {
   const handleExport = () => {
     const data: IDesign = {
       id: generateId(),
-      ...stateManager.toJSON()
+      ...stateManager.toJSON(),
     };
 
     console.log({ data });
@@ -170,18 +163,11 @@ const DownloadPopover = ({ stateManager }: { stateManager: StateManager }) => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          className="flex h-7 gap-1 border border-border"
-          size={isMediumScreen ? "sm" : "icon"}
-        >
-          <Download width={18} />{" "}
-          <span className="hidden md:block">Export</span>
+        <Button className="flex h-7 gap-1 border border-border" size={isMediumScreen ? "sm" : "icon"}>
+          <Download width={18} /> <span className="hidden md:block">Export</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="bg-sidebar z-[250] flex w-60 flex-col gap-4"
-      >
+      <PopoverContent align="end" className="bg-sidebar z-[250] flex w-60 flex-col gap-4">
         <Label>Export settings</Label>
 
         <Popover open={isExportTypeOpen} onOpenChange={setIsExportTypeOpen}>
@@ -244,8 +230,8 @@ const RESIZE_OPTIONS: ResizeOptionProps[] = [
     value: {
       width: 1920,
       height: 1080,
-      name: "16:9"
-    }
+      name: "16:9",
+    },
   },
   {
     label: "9:16",
@@ -254,8 +240,8 @@ const RESIZE_OPTIONS: ResizeOptionProps[] = [
     value: {
       width: 1080,
       height: 1920,
-      name: "9:16"
-    }
+      name: "9:16",
+    },
   },
   {
     label: "1:1",
@@ -264,17 +250,17 @@ const RESIZE_OPTIONS: ResizeOptionProps[] = [
     value: {
       width: 1080,
       height: 1080,
-      name: "1:1"
-    }
-  }
+      name: "1:1",
+    },
+  },
 ];
 
 const ResizeVideo = () => {
   const handleResize = (options: ResizeValue) => {
     dispatch(DESIGN_RESIZE, {
       payload: {
-        ...options
-      }
+        ...options,
+      },
     });
   };
   return (
@@ -308,7 +294,7 @@ const ResizeOption = ({
   icon,
   value,
   description,
-  handleResize
+  handleResize,
 }: ResizeOptionProps & { handleResize: (payload: ResizeValue) => void }) => {
   const Icon = Icons[icon as "text"];
   return (

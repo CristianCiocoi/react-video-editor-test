@@ -10,22 +10,13 @@ import useStore from "../store/use-store";
 
 const Composition = () => {
   const [editableTextId, setEditableTextId] = useState<string | null>(null);
-  const {
-    trackItemIds,
-    trackItemsMap,
-    fps,
-    sceneMoveableRef,
-    size,
-    transitionsMap,
-    structure,
-    activeIds
-  } = useStore();
+  const { trackItemIds, trackItemsMap, fps, sceneMoveableRef, size, transitionsMap, structure, activeIds } = useStore();
   const frame = useCurrentFrame();
 
   const groupedItems = groupTrackItems({
     trackItemIds,
     transitionsMap,
-    trackItemsMap: trackItemsMap
+    trackItemsMap: trackItemsMap,
   });
   const mediaItems = Object.values(trackItemsMap).filter((item) => {
     return item.type === "video" || item.type === "audio";
@@ -33,30 +24,17 @@ const Composition = () => {
 
   const handleTextChange = (id: string, _: string) => {
     const elRef = document.querySelector(`.id-${id}`) as HTMLDivElement;
-    const containerDiv = elRef.firstElementChild
-      ?.firstElementChild as HTMLDivElement;
-    const textDiv = elRef.firstElementChild?.firstElementChild
-      ?.firstElementChild?.firstElementChild
+    const containerDiv = elRef.firstElementChild?.firstElementChild as HTMLDivElement;
+    const textDiv = elRef.firstElementChild?.firstElementChild?.firstElementChild?.firstElementChild
       ?.firstElementChild as HTMLDivElement;
 
-    const {
-      fontFamily,
-      fontSize,
-      fontWeight,
-      letterSpacing,
-      lineHeight,
-      textShadow,
-      webkitTextStroke,
-      textTransform
-    } = textDiv.style;
+    const { fontFamily, fontSize, fontWeight, letterSpacing, lineHeight, textShadow, webkitTextStroke, textTransform } =
+      textDiv.style;
     if (!elRef.innerText) return;
 
     // Check if any word is wider than current container
     const words = elRef.innerText.split(/\s+/);
-    const longestWord = words.reduce(
-      (longest, word) => (word.length > longest.length ? word : longest),
-      ""
-    );
+    const longestWord = words.reduce((longest, word) => (word.length > longest.length ? word : longest), "");
 
     // Create temporary element to measure longest word width
     const tempDiv = document.createElement("div");
@@ -91,7 +69,7 @@ const Composition = () => {
       webkitTextStroke,
       width: elRef.style.width,
       id: id,
-      textTransform
+      textTransform,
     });
     const currentHeight = elRef.clientHeight;
     if (newHeight > currentHeight) {
@@ -104,18 +82,9 @@ const Composition = () => {
 
   const onTextBlur = (id: string, _: string) => {
     const elRef = document.querySelector(`.id-${id}`) as HTMLDivElement;
-    const textDiv = elRef.firstElementChild?.firstElementChild
-      ?.firstElementChild as HTMLDivElement;
-    const {
-      fontFamily,
-      fontSize,
-      fontWeight,
-      letterSpacing,
-      lineHeight,
-      textShadow,
-      webkitTextStroke,
-      textTransform
-    } = textDiv.style;
+    const textDiv = elRef.firstElementChild?.firstElementChild?.firstElementChild as HTMLDivElement;
+    const { fontFamily, fontSize, fontWeight, letterSpacing, lineHeight, textShadow, webkitTextStroke, textTransform } =
+      textDiv.style;
     const { width } = elRef.style;
     if (!elRef.innerText) return;
     const newHeight = calculateTextHeight({
@@ -129,32 +98,28 @@ const Composition = () => {
       webkitTextStroke,
       width,
       id: id,
-      textTransform
+      textTransform,
     });
     dispatch(EDIT_OBJECT, {
       payload: {
         [id]: {
           details: {
-            height: newHeight
-          }
-        }
-      }
+            height: newHeight,
+          },
+        },
+      },
     });
   };
 
   //   handle track and track item events - updates
   useEffect(() => {
-    const stateEvents = subject.pipe(
-      filter(({ key }) => key.startsWith(ENTER_EDIT_MODE))
-    );
+    const stateEvents = subject.pipe(filter(({ key }) => key.startsWith(ENTER_EDIT_MODE)));
 
     const subscription = stateEvents.subscribe((obj) => {
       if (obj.key === ENTER_EDIT_MODE) {
         if (editableTextId) {
           // get element by  data-text-id={id}
-          const element = document.querySelector(
-            `[data-text-id="${editableTextId}"]`
-          ) as HTMLDivElement;
+          const element = document.querySelector(`[data-text-id="${editableTextId}"]`) as HTMLDivElement;
 
           let text = "";
           if (element) {
@@ -175,10 +140,10 @@ const Composition = () => {
               payload: {
                 [editableTextId]: {
                   details: {
-                    text: text || ""
-                  }
-                }
-              }
+                    text: text || "",
+                  },
+                },
+              },
             });
           }
         }
@@ -193,6 +158,10 @@ const Composition = () => {
       {groupedItems.map((group, index) => {
         if (group.length === 1) {
           const item = trackItemsMap[group[0].id];
+          // Skip selection range items - they're timeline-only visualization
+          if ((item.type as string) === "selectionRange") {
+            return null;
+          }
           return SequenceItem[item.type](item, {
             fps,
             handleTextChange,
@@ -200,7 +169,7 @@ const Composition = () => {
             editableTextId,
             frame,
             size,
-            isTransition: false
+            isTransition: false,
           });
         }
         const firstItem = trackItemsMap[group[0].id];
@@ -214,15 +183,19 @@ const Composition = () => {
                   durationInFrames,
                   ...size,
                   id: item.id,
-                  direction: item.direction
+                  direction: item.direction,
                 });
+              }
+              // Skip selection range items
+              if ((item.type as string) === "selectionRange") {
+                return null;
               }
               return SequenceItem[item.type](trackItemsMap[item.id], {
                 fps,
                 handleTextChange,
                 editableTextId,
                 isTransition: true,
-                size
+                size,
               });
             })}
           </TransitionSeries>

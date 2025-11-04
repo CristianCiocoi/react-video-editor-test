@@ -1,14 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import useStore from "./store/use-store";
-import {
-  IAudio,
-  ICaption,
-  IImage,
-  ITrackItem,
-  ITrackItemAndDetails,
-  IVideo
-} from "@designcombo/types";
+import { IAudio, ICaption, IImage, ITrackItem, ITrackItemAndDetails, IVideo } from "@designcombo/types";
 import useLayoutStore from "./store/use-layout-store";
+import { useSelectionStore } from "./store/use-selection-store";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useIsLargeScreen } from "@/hooks/use-media-query";
@@ -26,7 +20,7 @@ import { Label } from "@/components/ui/label";
 
 const ActiveControlItem = ({
   trackItem,
-  handleMenuItemClick
+  handleMenuItemClick,
 }: {
   trackItem?: ITrackItemAndDetails;
   handleMenuItemClick: (menuItem: string, label: string) => void;
@@ -39,18 +33,14 @@ const ActiveControlItem = ({
           caption: <ItemCaption handleMenuItemClick={handleMenuItemClick} />,
           image: <ItemImage handleMenuItemClick={handleMenuItemClick} />,
           video: <ItemVideo handleMenuItemClick={handleMenuItemClick} />,
-          audio: <ItemAudio handleMenuItemClick={handleMenuItemClick} />
+          audio: <ItemAudio handleMenuItemClick={handleMenuItemClick} />,
         }[trackItem?.type as "text"]
       }
     </>
   );
 };
 
-const ColorPickerControl = ({
-  trackItem
-}: {
-  trackItem?: ITrackItemAndDetails;
-}) => {
+const ColorPickerControl = ({ trackItem }: { trackItem?: ITrackItemAndDetails }) => {
   const [localValue, setLocalValue] = useState<string>("#ffffff");
   const [open, setOpen] = useState(false);
   const isLargeScreen = useIsLargeScreen();
@@ -85,9 +75,9 @@ const ColorPickerControl = ({
     dispatch(EDIT_OBJECT, {
       payload: {
         [trackItem?.id || ""]: {
-          details: updatePayload
-        }
-      }
+          details: updatePayload,
+        },
+      },
     });
   };
 
@@ -108,11 +98,7 @@ const ColorPickerControl = ({
   );
 };
 
-const StrokeColorPickerControl = ({
-  trackItem
-}: {
-  trackItem?: ITrackItemAndDetails;
-}) => {
+const StrokeColorPickerControl = ({ trackItem }: { trackItem?: ITrackItemAndDetails }) => {
   const [localValue, setLocalValue] = useState<string>("#000000");
   const [open, setOpen] = useState(false);
   const isLargeScreen = useIsLargeScreen();
@@ -132,10 +118,10 @@ const StrokeColorPickerControl = ({
       payload: {
         [trackItem?.id || ""]: {
           details: {
-            borderColor: color
-          }
-        }
-      }
+            borderColor: color,
+          },
+        },
+      },
     });
   };
 
@@ -161,19 +147,14 @@ const StrokeColorPickerControl = ({
   );
 };
 
-const ShadowColorPickerControl = ({
-  trackItem
-}: {
-  trackItem?: ITrackItemAndDetails;
-}) => {
+const ShadowColorPickerControl = ({ trackItem }: { trackItem?: ITrackItemAndDetails }) => {
   const [localValue, setLocalValue] = useState<string>("#000000");
   const isLargeScreen = useIsLargeScreen();
   const { setControItemDrawerOpen } = useLayoutStore();
 
   useEffect(() => {
     // Get the current shadow color from track item details
-    const currentShadowColor =
-      trackItem?.details?.boxShadow?.color || "#000000";
+    const currentShadowColor = trackItem?.details?.boxShadow?.color || "#000000";
     setLocalValue(currentShadowColor);
   }, [trackItem]);
 
@@ -187,11 +168,11 @@ const ShadowColorPickerControl = ({
           details: {
             boxShadow: {
               ...trackItem?.details?.boxShadow,
-              color: color
-            }
-          }
-        }
-      }
+              color: color,
+            },
+          },
+        },
+      },
     });
   };
 
@@ -217,11 +198,7 @@ const ShadowColorPickerControl = ({
   );
 };
 
-const BackgroundColorPickerControl = ({
-  trackItem
-}: {
-  trackItem?: ITrackItemAndDetails;
-}) => {
+const BackgroundColorPickerControl = ({ trackItem }: { trackItem?: ITrackItemAndDetails }) => {
   const [localValue, setLocalValue] = useState<string>("#ffffff");
   const isLargeScreen = useIsLargeScreen();
   const { setControItemDrawerOpen } = useLayoutStore();
@@ -240,10 +217,10 @@ const BackgroundColorPickerControl = ({
       payload: {
         [trackItem?.id || ""]: {
           details: {
-            background: color
-          }
-        }
-      }
+            background: color,
+          },
+        },
+      },
     });
   };
 
@@ -253,9 +230,7 @@ const BackgroundColorPickerControl = ({
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Label className="font-sans text-xs font-semibold">
-        Background Color
-      </Label>
+      <Label className="font-sans text-xs font-semibold">Background Color</Label>
 
       <div className="flex items-center pb-4 justify-center">
         <ColorPicker
@@ -271,11 +246,7 @@ const BackgroundColorPickerControl = ({
   );
 };
 
-const CaptionAppearedColorPickerControl = ({
-  trackItem
-}: {
-  trackItem?: ITrackItemAndDetails;
-}) => {
+const CaptionAppearedColorPickerControl = ({ trackItem }: { trackItem?: ITrackItemAndDetails }) => {
   const [localValue, setLocalValue] = useState<string>("#ffffff");
   const isLargeScreen = useIsLargeScreen();
   const { setControItemDrawerOpen } = useLayoutStore();
@@ -294,10 +265,10 @@ const CaptionAppearedColorPickerControl = ({
       payload: {
         [trackItem?.id || ""]: {
           details: {
-            appearedColor: color
-          }
-        }
-      }
+            appearedColor: color,
+          },
+        },
+      },
     });
   };
 
@@ -323,11 +294,7 @@ const CaptionAppearedColorPickerControl = ({
   );
 };
 
-const CaptionActiveColorPickerControl = ({
-  trackItem
-}: {
-  trackItem?: ITrackItemAndDetails;
-}) => {
+const CaptionActiveColorPickerControl = ({ trackItem }: { trackItem?: ITrackItemAndDetails }) => {
   const [localValue, setLocalValue] = useState<string>("#ffffff");
   const isLargeScreen = useIsLargeScreen();
   const { setControItemDrawerOpen } = useLayoutStore();
@@ -346,10 +313,10 @@ const CaptionActiveColorPickerControl = ({
       payload: {
         [trackItem?.id || ""]: {
           details: {
-            activeColor: color
-          }
-        }
-      }
+            activeColor: color,
+          },
+        },
+      },
     });
   };
 
@@ -375,19 +342,14 @@ const CaptionActiveColorPickerControl = ({
   );
 };
 
-const CaptionActiveFillColorPickerControl = ({
-  trackItem
-}: {
-  trackItem?: ITrackItemAndDetails;
-}) => {
+const CaptionActiveFillColorPickerControl = ({ trackItem }: { trackItem?: ITrackItemAndDetails }) => {
   const [localValue, setLocalValue] = useState<string>("#ffffff");
   const isLargeScreen = useIsLargeScreen();
   const { setControItemDrawerOpen } = useLayoutStore();
 
   useEffect(() => {
     // Get the current active fill color from track item details
-    const currentActiveFillColor =
-      trackItem?.details?.activeFillColor || "#ffffff";
+    const currentActiveFillColor = trackItem?.details?.activeFillColor || "#ffffff";
     setLocalValue(currentActiveFillColor);
   }, [trackItem]);
 
@@ -399,10 +361,10 @@ const CaptionActiveFillColorPickerControl = ({
       payload: {
         [trackItem?.id || ""]: {
           details: {
-            activeFillColor: color
-          }
-        }
-      }
+            activeFillColor: color,
+          },
+        },
+      },
     });
   };
 
@@ -412,9 +374,7 @@ const CaptionActiveFillColorPickerControl = ({
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Label className="font-sans text-xs font-semibold">
-        Active Fill Color
-      </Label>
+      <Label className="font-sans text-xs font-semibold">Active Fill Color</Label>
 
       <div className="flex items-center pb-4 justify-center">
         <ColorPicker
@@ -430,17 +390,12 @@ const CaptionActiveFillColorPickerControl = ({
   );
 };
 
-const CaptionEmphasizeColorPickerControl = ({
-  trackItem
-}: {
-  trackItem?: ITrackItemAndDetails;
-}) => {
+const CaptionEmphasizeColorPickerControl = ({ trackItem }: { trackItem?: ITrackItemAndDetails }) => {
   const [localValue, setLocalValue] = useState<string>("#ffffff");
 
   useEffect(() => {
     // Get the current active fill color from track item details
-    const currentActiveFillColor =
-      trackItem?.details?.isKeywordColor || "#ffffff";
+    const currentActiveFillColor = trackItem?.details?.isKeywordColor || "#ffffff";
     setLocalValue(currentActiveFillColor);
   }, [trackItem]);
 
@@ -452,10 +407,10 @@ const CaptionEmphasizeColorPickerControl = ({
       payload: {
         [trackItem?.id || ""]: {
           details: {
-            isKeywordColor: color
-          }
-        }
-      }
+            isKeywordColor: color,
+          },
+        },
+      },
     });
   };
 
@@ -477,13 +432,7 @@ const CaptionEmphasizeColorPickerControl = ({
   );
 };
 
-const ControlItem = ({
-  trackItem,
-  feature
-}: {
-  trackItem?: ITrackItemAndDetails;
-  feature: string;
-}) => {
+const ControlItem = ({ trackItem, feature }: { trackItem?: ITrackItemAndDetails; feature: string }) => {
   // First check if it's a custom feature (like strokeColor, color, shadowColor, backgroundColor, caption colors)
   if (feature === "strokeColor") {
     return <StrokeColorPickerControl trackItem={trackItem} />;
@@ -521,36 +470,11 @@ const ControlItem = ({
     <>
       {
         {
-          text: (
-            <BasicText
-              trackItem={trackItem as ITrackItem & any}
-              type={feature}
-            />
-          ),
-          caption: (
-            <BasicCaption
-              trackItem={trackItem as ITrackItem & ICaption}
-              type={feature}
-            />
-          ),
-          image: (
-            <BasicImage
-              trackItem={trackItem as ITrackItem & IImage}
-              type={feature}
-            />
-          ),
-          video: (
-            <BasicVideo
-              trackItem={trackItem as ITrackItem & IVideo}
-              type={feature}
-            />
-          ),
-          audio: (
-            <BasicAudio
-              trackItem={trackItem as ITrackItem & IAudio}
-              type={feature}
-            />
-          )
+          text: <BasicText trackItem={trackItem as ITrackItem & any} type={feature} />,
+          caption: <BasicCaption trackItem={trackItem as ITrackItem & ICaption} type={feature} />,
+          image: <BasicImage trackItem={trackItem as ITrackItem & IImage} type={feature} />,
+          video: <BasicVideo trackItem={trackItem as ITrackItem & IVideo} type={feature} />,
+          audio: <BasicAudio trackItem={trackItem as ITrackItem & IAudio} type={feature} />,
         }[trackItem?.type as "text"]
       }
     </>
@@ -562,18 +486,21 @@ export default function ControlItemHorizontal() {
   const [trackItem, setTrackItem] = useState<ITrackItem | null>(null);
   const { setTrackItem: setLayoutTrackItem } = useLayoutStore();
   const isLargeScreen = useIsLargeScreen();
-  const {
-    setTypeControlItem,
-    typeControlItem,
-    setControItemDrawerOpen,
-    controItemDrawerOpen,
-    setLabelControlItem
-  } = useLayoutStore();
+  const { setTypeControlItem, typeControlItem, setControItemDrawerOpen, controItemDrawerOpen, setLabelControlItem } =
+    useLayoutStore();
 
   // Framer Motion controls
   const controls = useAnimation();
 
   useEffect(() => {
+    // In selection mode, don't show control panel for media items
+    const { selectionMode } = useSelectionStore.getState();
+    if (selectionMode) {
+      setTrackItem(null);
+      setLayoutTrackItem(null);
+      return;
+    }
+
     if (activeIds.length === 1) {
       const [id] = activeIds;
       const trackItem = trackItemsMap[id];
@@ -600,10 +527,8 @@ export default function ControlItemHorizontal() {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
 
-      const clickedOutsideDrawer =
-        drawerRef.current && !drawerRef.current.contains(target);
-      const clickedOutsideScrollArea =
-        scrollAreaRef.current && !scrollAreaRef.current.contains(target);
+      const clickedOutsideDrawer = drawerRef.current && !drawerRef.current.contains(target);
+      const clickedOutsideScrollArea = scrollAreaRef.current && !scrollAreaRef.current.contains(target);
 
       if (clickedOutsideDrawer && clickedOutsideScrollArea) {
         setControItemDrawerOpen(false);
@@ -625,7 +550,7 @@ export default function ControlItemHorizontal() {
       // Animate back to original position
       controls.start({
         y: 0,
-        transition: { type: "spring", damping: 25, stiffness: 300 }
+        transition: { type: "spring", damping: 25, stiffness: 300 },
       });
     }
   };
@@ -639,8 +564,8 @@ export default function ControlItemHorizontal() {
         type: "spring",
         damping: 25,
         stiffness: 300,
-        duration: 0.3
-      }
+        duration: 0.3,
+      },
     },
     exit: {
       y: "100%",
@@ -648,9 +573,9 @@ export default function ControlItemHorizontal() {
         type: "spring",
         damping: 25,
         stiffness: 300,
-        duration: 0.2
-      }
-    }
+        duration: 0.2,
+      },
+    },
   };
 
   return (
@@ -658,10 +583,7 @@ export default function ControlItemHorizontal() {
       <div className="flex h-12 items-center border-t">
         <ScrollArea className="w-full px-2" ref={scrollAreaRef}>
           {trackItem && (
-            <ActiveControlItem
-              trackItem={trackItem as ITrackItem & any}
-              handleMenuItemClick={handleMenuItemClick}
-            />
+            <ActiveControlItem trackItem={trackItem as ITrackItem & any} handleMenuItemClick={handleMenuItemClick} />
           )}
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
@@ -694,10 +616,7 @@ export default function ControlItemHorizontal() {
                 <motion.div className="h-1 w-24 bg-zinc-700 rounded-full" />
               </motion.div>
               <div className="flex-1 overflow-auto">
-                <ControlItem
-                  trackItem={trackItem as ITrackItem & any}
-                  feature={typeControlItem}
-                />
+                <ControlItem trackItem={trackItem as ITrackItem & any} feature={typeControlItem} />
               </div>
             </div>
           </motion.div>
@@ -714,7 +633,7 @@ type Item = {
 
 const ItemGroup = ({
   items,
-  handleMenuItemClick
+  handleMenuItemClick,
 }: {
   items: Item[];
   handleMenuItemClick: (menuItem: string, label: string) => void;
@@ -740,28 +659,20 @@ const ItemGroup = ({
   );
 };
 
-const ItemText = ({
-  handleMenuItemClick
-}: {
-  handleMenuItemClick: (menuItem: string, label: string) => void;
-}) => (
+const ItemText = ({ handleMenuItemClick }: { handleMenuItemClick: (menuItem: string, label: string) => void }) => (
   <ItemGroup
     items={[
       { icon: Icons.preset, label: "Preset", id: "textPreset" },
       { icon: Icons.style, label: "Styles", id: "textControls" },
       { icon: Icons.animation, label: "Animations", id: "animations" },
       { icon: Icons.fontStroke, label: "Stroke", id: "fontStroke" },
-      { icon: Icons.fontShadow, label: "Shadow", id: "fontShadow" }
+      { icon: Icons.fontShadow, label: "Shadow", id: "fontShadow" },
     ]}
     handleMenuItemClick={handleMenuItemClick}
   />
 );
 
-const ItemCaption = ({
-  handleMenuItemClick
-}: {
-  handleMenuItemClick: (menuItem: string, label: string) => void;
-}) => (
+const ItemCaption = ({ handleMenuItemClick }: { handleMenuItemClick: (menuItem: string, label: string) => void }) => (
   <ItemGroup
     items={[
       { icon: Icons.preset, label: "Preset", id: "captionPreset" },
@@ -769,56 +680,44 @@ const ItemCaption = ({
       { icon: Icons.style, label: "Styles", id: "textControls" },
       { icon: Icons.animation, label: "Colors", id: "captionColors" },
       { icon: Icons.fontStroke, label: "Stroke", id: "fontStroke" },
-      { icon: Icons.fontShadow, label: "Shadow", id: "fontShadow" }
+      { icon: Icons.fontShadow, label: "Shadow", id: "fontShadow" },
     ]}
     handleMenuItemClick={handleMenuItemClick}
   />
 );
 
-const ItemImage = ({
-  handleMenuItemClick
-}: {
-  handleMenuItemClick: (menuItem: string, label: string) => void;
-}) => (
+const ItemImage = ({ handleMenuItemClick }: { handleMenuItemClick: (menuItem: string, label: string) => void }) => (
   <ItemGroup
     items={[
       { icon: Icons.crop, label: "Crop", id: "crop" },
       { icon: Icons.basic, label: "Basic", id: "basic" },
       { icon: Icons.animation, label: "Animations", id: "animations" },
       { icon: Icons.outline, label: "Outline", id: "outline" },
-      { icon: Icons.shadow, label: "Shadow", id: "shadow" }
+      { icon: Icons.shadow, label: "Shadow", id: "shadow" },
     ]}
     handleMenuItemClick={handleMenuItemClick}
   />
 );
 
-const ItemVideo = ({
-  handleMenuItemClick
-}: {
-  handleMenuItemClick: (menuItem: string, label: string) => void;
-}) => (
+const ItemVideo = ({ handleMenuItemClick }: { handleMenuItemClick: (menuItem: string, label: string) => void }) => (
   <ItemGroup
     items={[
       { icon: Icons.crop, label: "Crop", id: "crop" },
       { icon: Icons.basic, label: "Basic", id: "basic" },
       { icon: Icons.animation, label: "Animations", id: "animations" },
       { icon: Icons.outline, label: "Outline", id: "outline" },
-      { icon: Icons.shadow, label: "Shadow", id: "shadow" }
+      { icon: Icons.shadow, label: "Shadow", id: "shadow" },
     ]}
     handleMenuItemClick={handleMenuItemClick}
   />
 );
 
-const ItemAudio = ({
-  handleMenuItemClick
-}: {
-  handleMenuItemClick: (menuItem: string, label: string) => void;
-}) => (
+const ItemAudio = ({ handleMenuItemClick }: { handleMenuItemClick: (menuItem: string, label: string) => void }) => (
   <ItemGroup
     items={[
       { icon: Icons.audio, label: "Replace", id: "replace" },
       { icon: Icons.speed, label: "Speed", id: "speed" },
-      { icon: Icons.volume, label: "Volume", id: "volume" }
+      { icon: Icons.volume, label: "Volume", id: "volume" },
     ]}
     handleMenuItemClick={handleMenuItemClick}
   />

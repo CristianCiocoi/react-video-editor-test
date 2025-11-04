@@ -5,10 +5,7 @@ import { timeMsToUnits, unitsToTimeMs } from "@designcombo/timeline";
 import CanvasTimeline from "./items/timeline";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import { dispatch, filter, subject } from "@designcombo/events";
-import {
-  TIMELINE_BOUNDING_CHANGED,
-  TIMELINE_PREFIX
-} from "@designcombo/timeline";
+import { TIMELINE_BOUNDING_CHANGED, TIMELINE_PREFIX } from "@designcombo/timeline";
 import useStore from "../store/use-store";
 import Playhead from "./playhead";
 import { useCurrentPlayerFrame } from "../hooks/use-current-frame";
@@ -23,13 +20,11 @@ import {
   LinealAudioBars,
   RadialAudioBars,
   WaveAudioBars,
-  HillAudioBars
+  HillAudioBars,
+  SelectionRange,
 } from "./items";
 import StateManager, { REPLACE_MEDIA } from "@designcombo/state";
-import {
-  TIMELINE_OFFSET_CANVAS_LEFT,
-  TIMELINE_OFFSET_CANVAS_RIGHT
-} from "../constants/constants";
+import { TIMELINE_OFFSET_CANVAS_LEFT, TIMELINE_OFFSET_CANVAS_RIGHT } from "../constants/constants";
 import { ITrackItem } from "@designcombo/types";
 import PreviewTrackItem from "./items/preview-drag-item";
 import { useTimelineOffsetX } from "../hooks/use-timeline-offset";
@@ -47,7 +42,8 @@ CanvasTimeline.registerItems({
   LinealAudioBars,
   RadialAudioBars,
   WaveAudioBars,
-  HillAudioBars
+  HillAudioBars,
+  SelectionRange,
 });
 
 const EMPTY_SIZE = { width: 0, height: 0 };
@@ -64,9 +60,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
   const { scale, playerRef, fps, duration, setState, timeline } = useStore();
   const currentFrame = useCurrentPlayerFrame(playerRef);
   const [canvasSize, setCanvasSize] = useState(EMPTY_SIZE);
-  const [size, setSize] = useState<{ width: number; height: number }>(
-    EMPTY_SIZE
-  );
+  const [size, setSize] = useState<{ width: number; height: number }>(EMPTY_SIZE);
   const timelineOffsetX = useTimelineOffsetX();
 
   const { setTimeline } = useStore();
@@ -95,24 +89,22 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
 
     if (!canvasEl || !horizontalScrollbar) return;
 
-    const canvasBoudingX =
-      canvasEl.getBoundingClientRect().x + canvasEl.clientWidth;
+    const canvasBoudingX = canvasEl.getBoundingClientRect().x + canvasEl.clientWidth;
     const playHeadPos = position - scrollLeft + 40;
     if (playHeadPos >= canvasBoudingX) {
       const scrollDivWidth = horizontalScrollbar.clientWidth;
       const totalScrollWidth = horizontalScrollbar.scrollWidth;
       const currentPosScroll = horizontalScrollbar.scrollLeft;
-      const availableScroll =
-        totalScrollWidth - (scrollDivWidth + currentPosScroll);
+      const availableScroll = totalScrollWidth - (scrollDivWidth + currentPosScroll);
       const scaleScroll = availableScroll / scrollDivWidth;
       if (scaleScroll >= 0) {
         if (scaleScroll > 1)
           horizontalScrollbar.scrollTo({
-            left: currentPosScroll + scrollDivWidth
+            left: currentPosScroll + scrollDivWidth,
           });
         else
           horizontalScrollbar.scrollTo({
-            left: totalScrollWidth - scrollDivWidth
+            left: totalScrollWidth - scrollDivWidth,
           });
       }
     }
@@ -121,7 +113,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
   const onResizeCanvas = (payload: { width: number; height: number }) => {
     setCanvasSize({
       width: payload.width,
-      height: payload.height
+      height: payload.height,
     });
   };
 
@@ -138,7 +130,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
       height: containerHeight,
       bounding: {
         width: containerWidth,
-        height: 0
+        height: 0,
       },
       selectionColor: "rgba(0, 216, 214,0.1)",
       selectionBorderColor: "rgba(0, 216, 214,1.0)",
@@ -149,7 +141,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
       duration,
       spacing: {
         left: TIMELINE_OFFSET_CANVAS_LEFT,
-        right: TIMELINE_OFFSET_CANVAS_RIGHT
+        right: TIMELINE_OFFSET_CANVAS_RIGHT,
       },
       sizesMap: {
         caption: 32,
@@ -160,7 +152,9 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
         linealAudioBars: 40,
         radialAudioBars: 40,
         waveAudioBars: 40,
-        hillAudioBars: 40
+        hillAudioBars: 40,
+        selectionRange: 100, // Increased height for selection visualization
+        selectionTrack: 100,
       },
       itemTypes: [
         "text",
@@ -177,7 +171,9 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
         "progressFrame",
         "progressBar",
         "waveAudioBars",
-        "hillAudioBars"
+        "hillAudioBars",
+        "selectionRange",
+        "selectionTrack",
       ],
       acceptsMap: {
         text: ["text", "caption"],
@@ -192,9 +188,10 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
         linealAudioBars: ["audio", "linealAudioBars"],
         radialAudioBars: ["audio", "radialAudioBars"],
         waveAudioBars: ["audio", "waveAudioBars"],
-        hillAudioBars: ["audio", "hillAudioBars"]
+        hillAudioBars: ["audio", "hillAudioBars"],
+        selectionTrack: ["selectionRange"],
       },
-      guideLineColor: "#ffffff"
+      guideLineColor: "#ffffff",
     });
 
     canvasRef.current = canvas;
@@ -202,7 +199,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
     setCanvasSize({ width: containerWidth, height: containerHeight });
     setSize({
       width: containerWidth,
-      height: 0
+      height: 0,
     });
     setTimeline(canvas);
 
@@ -233,9 +230,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
   };
 
   useEffect(() => {
-    const addEvents = subject.pipe(
-      filter(({ key }) => key.startsWith(TIMELINE_PREFIX))
-    );
+    const addEvents = subject.pipe(filter(({ key }) => key.startsWith(TIMELINE_PREFIX)));
 
     const subscription = addEvents.subscribe((obj) => {
       if (obj.key === TIMELINE_BOUNDING_CHANGED) {
@@ -243,7 +238,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
         if (bounding) {
           setSize({
             width: bounding.width,
-            height: bounding.height
+            height: bounding.height,
           });
         }
       }
@@ -260,10 +255,10 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
       payload: {
         [trackItem.id]: {
           details: {
-            src: "https://cdn.designcombo.dev/videos/demo-video-4.mp4"
-          }
-        }
-      }
+            src: "https://cdn.designcombo.dev/videos/demo-video-4.mp4",
+          },
+        },
+      },
     });
   };
 
@@ -307,25 +302,17 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
       className="bg-muted relative h-full w-full overflow-hidden"
     >
       <Header />
-      <Ruler
-        onClick={onClickRuler}
-        scrollLeft={scrollLeft}
-        onScroll={onRulerScroll}
-      />
+      <Ruler onClick={onClickRuler} scrollLeft={scrollLeft} onScroll={onRulerScroll} />
       <Playhead scrollLeft={scrollLeft} />
       <div className="flex">
         <div
           style={{
-            width: timelineOffsetX
+            width: timelineOffsetX,
           }}
           className="relative flex-none"
         />
         <div style={{ height: canvasSize.height }} className="relative flex-1">
-          <div
-            style={{ height: canvasSize.height }}
-            ref={containerRef}
-            className="absolute top-0 w-full"
-          >
+          <div style={{ height: canvasSize.height }} ref={containerRef} className="absolute top-0 w-full">
             <canvas id="designcombo-timeline-canvas" ref={canvasElRef} />
           </div>
           <ScrollArea.Root
@@ -333,7 +320,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
             style={{
               position: "absolute",
               width: "calc(100vw - 40px)",
-              height: "10px"
+              height: "10px",
             }}
             className="ScrollAreaRootH"
             onPointerDown={() => {
@@ -351,19 +338,13 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
             >
               <div
                 style={{
-                  width:
-                    size.width > canvasSize.width
-                      ? size.width + TIMELINE_OFFSET_CANVAS_RIGHT
-                      : size.width
+                  width: size.width > canvasSize.width ? size.width + TIMELINE_OFFSET_CANVAS_RIGHT : size.width,
                 }}
                 className="pointer-events-none h-[10px]"
               />
             </ScrollArea.Viewport>
 
-            <ScrollArea.Scrollbar
-              className="ScrollAreaScrollbar"
-              orientation="horizontal"
-            >
+            <ScrollArea.Scrollbar className="ScrollAreaScrollbar" orientation="horizontal">
               <ScrollArea.Thumb
                 onMouseDown={() => {
                   canScrollRef.current = true;
@@ -381,29 +362,19 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
             style={{
               position: "absolute",
               height: canvasSize.height,
-              width: "10px"
+              width: "10px",
             }}
             className="ScrollAreaRootV"
           >
-            <ScrollArea.Viewport
-              onScroll={handleOnScrollV}
-              className="ScrollAreaViewport"
-              ref={verticalScrollbarVpRef}
-            >
+            <ScrollArea.Viewport onScroll={handleOnScrollV} className="ScrollAreaViewport" ref={verticalScrollbarVpRef}>
               <div
                 style={{
-                  height:
-                    size.height > canvasSize.height
-                      ? size.height + 40
-                      : canvasSize.height
+                  height: size.height > canvasSize.height ? size.height + 40 : canvasSize.height,
                 }}
                 className="pointer-events-none w-[10px]"
               />
             </ScrollArea.Viewport>
-            <ScrollArea.Scrollbar
-              className="ScrollAreaScrollbar"
-              orientation="vertical"
-            >
+            <ScrollArea.Scrollbar className="ScrollAreaScrollbar" orientation="vertical">
               <ScrollArea.Thumb
                 onMouseDown={() => {
                   canScrollRef.current = true;
